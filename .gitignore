@@ -1,0 +1,14 @@
+*.csv
+*.json
+*.txt
+*.log
+*.pkl
+*.pth
+*.pt
+*.pkl.gz
+*.pkl.bz2
+*.pkl.zip
+*.pkl.tar
+*.pkl.tar.gz
+*.pkl.tar.bz2
+*.pkl.tar.zip
