@@ -15,9 +15,7 @@ logger = get_logger(__name__)
 
 def _sanitize_feature_names(df: pd.DataFrame) -> pd.DataFrame:
     """将特征名中的特殊字符替换为下划线，LightGBM 不支持 < > [ ] 等 JSON 特殊字符"""
-    new_columns = {
-        col: re.sub(r"[<>\[\]{}:,\"\\]", "_", col) for col in df.columns
-    }
+    new_columns = {col: re.sub(r"[<>\[\]{}:,\"\\]", "_", col) for col in df.columns}
     return df.rename(columns=new_columns)
 
 
@@ -69,7 +67,11 @@ def train_and_save_lgb(
     # 5. 配置模型参数 (针对二分类任务)
     params = {
         "objective": "binary",  # 任务类型：二分类
-        "metric": "auc",  # 评估指标：ROC AUC (推荐系统常用)
+        "metric": [
+            "binary_logloss",
+            "ndcg",
+            "auc",
+        ],  # 评估指标：ROC AUC (推荐系统常用)
         "boosting_type": "gbdt",  # 提升树类型：传统梯度提升决策树
         "learning_rate": 0.05,  # 学习率
         "num_leaves": 31,  # 每棵树的最大叶子节点数 (控制复杂度)
