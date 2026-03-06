@@ -5,7 +5,9 @@ from .logger_config import get_logger
 logger = get_logger(__name__)
 
 
-def inference(model_path: str, data: pd.DataFrame) -> pd.DataFrame:
+def inference(
+    model_path: str, data: pd.DataFrame, ingore_cols: list[str]
+) -> pd.DataFrame:
     """
     推理阶段：加载模型，对新数据进行预测。
 
@@ -15,11 +17,18 @@ def inference(model_path: str, data: pd.DataFrame) -> pd.DataFrame:
     返回:
         预测结果。
     """
-    logger.info("开始加载模型...")
     try:
-        model = lgb.Booster(model_file=model_path)
+        logger.info("开始加载模型...")
+        drop_cols = [*ingore_cols]
+        data = data.drop(columns=drop_cols, errors="ignore")
+        try:
+            model = lgb.Booster(model_file=model_path)
+        except Exception as e:
+            logger.error("模型加载失败！错误信息: %s", e)
+            raise e
+        logger.info("模型加载完成！")
+        predictions = model.predict(data)
     except Exception as e:
-        logger.error("模型加载失败！错误信息: %s", e)
+        logger.error("推理过程发生异常: %s", e)
         raise e
-    logger.info("模型加载完成！")
-    return model.predict(data)
+    return predictions

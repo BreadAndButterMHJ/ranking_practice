@@ -4,7 +4,7 @@
 设计目标：
 - 统一 train / inference 的日志格式与输出位置
 - 控制台 + 文件同时输出
-- 文件按“天”滚动，自动保留历史
+- 每天一个日志文件（按天滚动），超过 14 天的日志自动删除
 - INFO/DEBUG 与 ERROR 分文件，方便排障
 - 避免重复添加 handler（反复 import / 反复调用也不会重复打印）
 - 通过环境变量快速切换日志级别与目录
@@ -91,9 +91,9 @@ class LoggingOptions:
     level: Optional[str] = None
     console_level: Optional[str] = None
     file_level: Optional[str] = None
-    when: str = "D"  # 按天滚动：D=day, H=hour, M=minute
-    interval: int = 1
-    backup_count: int = 14  # 保留 14 天
+    when: str = "D"  # 按天滚动，每天换一个文件
+    interval: int = 1  # 每 1 天滚动一次
+    backup_count: int = 14  # 只保留最近 14 天，超过 14 天的日志文件自动删除
     use_json: bool = False
     utc: bool = (
         False  # TimedRotatingFileHandler 是否使用 UTC（默认 False 更贴近本地时间）
@@ -115,6 +115,10 @@ def setup_logging(
 ) -> None:
     """
     初始化全局日志配置（建议在进程启动时调用一次）。
+
+    日志文件策略：
+    - 按天滚动：每天换一个文件（当前写入主文件，午夜滚动时重命名为带日期的备份）
+    - 超过 14 天的日志自动删除（仅保留最近 14 天的备份）
 
     环境变量（不传参数时生效）：
     - RANKING_LOG_DIR：日志目录（默认：<repo>/logs）
@@ -169,12 +173,9 @@ def setup_logging(
         if options.use_json:
             formatter: logging.Formatter = JsonFormatter()
         else:
-            # 注意：这里带上进程、线程、文件、行号，便于定位问题
+            # 格式：2026-03-06 03:52:45,064 [INFO] [inference.py:45] - message
             formatter = logging.Formatter(
-                fmt=(
-                    "%(asctime)s.%(msecs)03d | %(levelname)s | %(name)s | "
-                    "pid=%(process)d tid=%(threadName)s | %(filename)s:%(lineno)d | %(message)s"
-                ),
+                fmt="%(asctime)s,%(msecs)03d [%(levelname)s] [%(filename)s:%(lineno)d] - %(message)s",
                 datefmt="%Y-%m-%d %H:%M:%S",
             )
 
@@ -184,7 +185,7 @@ def setup_logging(
         ch.setFormatter(formatter)
         root.addHandler(ch)
 
-        # 文件输出：info/debug
+        # 文件输出：info/debug（每天一个文件，超过 14 天的自动删除）
         info_path = final_log_dir / f"{options.app_name}.log"
         fh = TimedRotatingFileHandler(
             filename=str(info_path),
@@ -198,7 +199,7 @@ def setup_logging(
         fh.setFormatter(formatter)
         root.addHandler(fh)
 
-        # 文件输出：error 单独一份（方便快速 grep）
+        # 文件输出：error 单独一份（每天一个文件，超过 14 天的自动删除）
         err_path = final_log_dir / f"{options.app_name}.error.log"
         eh = TimedRotatingFileHandler(
             filename=str(err_path),

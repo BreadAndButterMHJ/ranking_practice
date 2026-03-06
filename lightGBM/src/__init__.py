@@ -9,6 +9,7 @@ from .logger_config import setup_logging, get_logger
 from .data_process import RobustFrequencyLabelBinarizer
 from .train import train_and_save_lgb
 from .inference import inference
+from .inference_production import inference_production
 
 __all__ = [
     "setup_logging",
@@ -16,4 +17,5 @@ __all__ = [
     "RobustFrequencyLabelBinarizer",
     "train_and_save_lgb",
     "inference",
+    "inference_production",
 ]

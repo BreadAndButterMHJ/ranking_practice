@@ -145,6 +145,7 @@ class RobustFrequencyLabelBinarizer:
 
     def fit_transform(self, series: pd.Series) -> pd.DataFrame:
         """拟合并转换（训练阶段常用）"""
+
         return self.fit(series).transform(series)
 
     def save_state(self):
